@@ -7,12 +7,10 @@ Product::Product(string ASIN, string title, string group, int ranking){
 	setGroup(group);
 	setSalesRank(ranking);
 }
-
-Product::Product(){
-
-}
 */
-
+Product::Product(){
+	this->valid = false;	
+}
 void Product::setASIN(string ASIN){
 	this->ASIN = ASIN;
 }
@@ -29,6 +27,11 @@ void Product::setSalesRank(int ranking){
 	this->salesRank = ranking;
 }
 
+void Product::setValid(){
+	if(this->valid) this->valid = false;
+	else this->valid = true;
+} 
+
 string Product::getASIN(){
 	return this->ASIN;
 }
@@ -44,3 +47,9 @@ string Product::getGroup(){
 int Product::getSalesRank(){
 	return this->salesRank;
 }
+
+bool Product::isValid(){
+	return this->valid;
+}
+
+
