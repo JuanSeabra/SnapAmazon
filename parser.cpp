@@ -12,6 +12,16 @@
 using namespace std;
 //using namespace boost;
 
+void trocaAspas(string &str){
+	for(int j = 0; j < str.size(); j++){
+		if(str[j] == '\''){
+			str.insert(j,"\\");
+			j++;
+		}
+	}
+
+}
+
 void parse(const char *nome_arquivo){
 	ifstream amazon_meta;
 	string linha;
@@ -22,6 +32,7 @@ void parse(const char *nome_arquivo){
 	string title_aux;
 	Product produto;
 	Categorie categoria;
+	Review comentario;
 	amazon_meta.open(nome_arquivo); 
 	unordered_multimap<string,string> similares;
 	vector<Categorie> categ;
@@ -36,6 +47,8 @@ void parse(const char *nome_arquivo){
 			/*****Pegando ASIN*****/
 			if( palavras[i] == "ASIN:"){
 				produto.setASIN(palavras[i+1]);
+				//setando asin para comentarios (usado mais tarde)
+				comentario.setASIN(palavras[i+1]);
 				cout << "--------------------------------------------" << endl;
 				cout << "ASIN!!!!!: " << produto.getASIN() << endl;
 			}
@@ -50,6 +63,7 @@ void parse(const char *nome_arquivo){
 					}
 					else title_aux += (palavras[i_aux] + " ");
 				}
+				trocaAspas(title_aux);
 				produto.setTitle(title_aux);
 				cout << "TITLE!!!!: " <<  produto.getTitle() << endl;
 			}
@@ -108,21 +122,75 @@ void parse(const char *nome_arquivo){
 							super_cat = palavras[j+1];
 							j++;
 						} else if(!palavras[j].empty()) {
-							cout << j << " categoria: " << palavras[j] << " id: " << palavras[j+1] << " super categ: " << super_cat << endl;
-							
+							string nome_aux = palavras[j];
+							trocaAspas(nome_aux);
+
+							cout << j << " categoria: " << nome_aux << " id: " << palavras[j+1] << " super categ: " << super_cat << endl;
+
 							super_cat = palavras[j+1];
 							j++;
 						}
 					}
 
 				}
-			}		
+			}	
+
+			if (palavras[i] == "reviews:"){
+				int downloaded;
+				//celula 7 recebe o valor de downloaded no split
+				downloaded = stoi(palavras[7]);
+				cout << "downloaded: " << downloaded << endl;
+
+				for (int i = 0; i < downloaded; i++) {
+					getline(amazon_meta, linha);
+					boost::split(palavras, linha, boost::is_any_of(" "));
+					comentario.setDate(palavras[4]);
+					for (int j = 5; j < palavras.size(); j++) {
+						if(!palavras[j].empty()){
+							if(palavras[j] == "cutomer:"){
+								j++;
+								while(palavras[j].empty()){
+									j++;
+								}
+								comentario.setId_cliente(palavras[j]);
+							}
+							if(palavras[j] == "rating:"){
+								j++;
+								while(palavras[j].empty()){
+									j++;
+								}
+								comentario.setRating(stod(palavras[j]));
+							}
+							if(palavras[j] == "votes:"){
+								j++;
+								while(palavras[j].empty()){
+									j++;
+								}
+								comentario.setVotes(stoi(palavras[j]));
+							}
+							if(palavras[j] == "helpful:"){
+								j++;
+								while(palavras[j].empty()){
+									j++;
+								}
+								comentario.setHelpful(stoi(palavras[j]));
+							}
+
+						}
+					}
+					cout << "data: " << comentario.getDate() <<
+						" cutomer: " << comentario.getId_cliente() <<
+						" nota: " << comentario.getRating() <<
+						" votos: " << comentario.getVotes() <<
+						" ajudou: " << comentario.getHelpful() << endl;
+				}
+			}
 
 		}
 		palavras.clear();
 		linha.clear();
 		aux++;
-		if(aux==100) break;
+		if(aux==400) break;
 	}
 }
 
