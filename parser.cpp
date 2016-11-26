@@ -229,7 +229,7 @@ void parse(string nome_arquivo, connection& C){
 				int downloaded;
 				//celula 7 recebe o valor de downloaded no split
 				downloaded = stoi(palavras[7]);
-				cout << "downloaded: " << downloaded << endl;
+				//cout << "downloaded: " << downloaded << endl;
 
 				for (int i = 0; i < downloaded; i++) {
 					getline(amazon_meta, linha);
