@@ -10,6 +10,7 @@ using namespace std;
 class Review{
 public:
 	Review(string id, string date, double rating, int votes, int helpful);
+	Review(){};
 	void setDate(string date);
 	void setId(string id);
 	void setRating(double rating);
