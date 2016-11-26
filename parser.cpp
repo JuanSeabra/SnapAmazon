@@ -109,25 +109,41 @@ void parse(const char *nome_arquivo){
 			//
 			if(palavras[i] == "categories:"){
 				categ_count = stoi(palavras[i+1]);
-				string super_cat;	
+				int super_cat;
+				int id_categ;
 				for (int i = 0; i < categ_count; i++) {
 					getline(amazon_meta, linha);
-					super_cat = "null";
+					super_cat = 0;
 					boost::split(palavras, linha, boost::is_any_of("[]|"));
 					for (int j = 1; j < palavras.size()-1; j++) {
 						if(palavras[j].empty() && j == 1){
 							//se a posição 1 é vazia logo a categoria raiz é sem nome
-							cout << j <<" categoria: -sem nome- id: " << palavras[j+1] << " super categ: " << super_cat << endl;
+							//string nome_aux = palavras[j];
+							//trocaAspas(nome_aux);
 
-							super_cat = palavras[j+1];
+							j++;
+							while(palavras[j].empty()){
+								j++;
+							}
+
+							id_categ = stoi(palavras[j]);
+
+							cout << j <<" categoria: -sem nome- id: " << id_categ << " super categ: " << super_cat << endl;
+
+							super_cat = id_categ;
 							j++;
 						} else if(!palavras[j].empty()) {
 							string nome_aux = palavras[j];
 							trocaAspas(nome_aux);
 
-							cout << j << " categoria: " << nome_aux << " id: " << palavras[j+1] << " super categ: " << super_cat << endl;
+							j++;
+							while(palavras[j].empty()){
+								j++;
+							}
 
-							super_cat = palavras[j+1];
+							id_categ = stoi(palavras[j]);
+							cout << j << " categoria: " << nome_aux << " id: " << id_categ << " super categ: " << super_cat << endl;
+							super_cat = id_categ;
 							j++;
 						}
 					}
