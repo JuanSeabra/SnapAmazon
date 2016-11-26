@@ -9,6 +9,7 @@ using namespace std;
 class Categorie{
 public:
 	Categorie(string name, int id, int super_id);
+	Categorie(){};
 	void setName(string name);
 	void setId(int id);
 	void setSuper_id(int super_id);
