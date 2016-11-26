@@ -106,6 +106,41 @@ void insereProduto(connection& C, Product produto) {
 	W.commit();
 }
 
+void insereCategoria(connection& C, string cod, string nome, string super_cat) {
+	string sql;
+	work W(C);
+
+	sql = "INSERT INTO categoria (cod, nome, super_categoria) " \
+	"VALUES (" + cod + ", '" + nome + "', " + super_cat + ")" \
+	"ON CONFLICT (cod) DO NOTHING;";
+
+	W.exec(sql);
+	W.commit();
+}
+
+void insereProduto_Categoria(connection& C, string asin, string cat) {
+	string sql;
+	work W(C);
+
+	sql = "INSERT INTO produto_categoria (ASIN, cod) " \
+	"VALUES ('" + asin +"', " + cat + ");";
+
+	W.exec(sql);
+	W.commit();
+}
+
+void insereComentarios(connection &C, Review coment) {
+	string sql;
+	work W(C);
+
+	sql = "INSERT INTO comentario (data, classif, votos, util, produto, cliente) " \
+	"VALUES ('" + coment.getDate() + "', " + to_string(coment.getRating()) + ", " \
+	+to_string(coment.getVotes())+ ", " \
+	+ to_string(coment.getHelpful()) + ", '" + coment.getASIN() + "', '" + coment.getId_cliente() + "');";
+	W.exec(sql);
+	W.commit();
+}
+
 void parse(string nome_arquivo, connection& C){
 	ifstream amazon_meta;
 	string linha;
@@ -200,15 +235,18 @@ void parse(string nome_arquivo, connection& C){
 			if(palavras[i] == "categories:"){
 				categ_count = stoi(palavras[i+1]);
 				string super_cat;	
+				string codCategoria;
 				for (int i = 0; i < categ_count; i++) {
 					getline(amazon_meta, linha);
 					super_cat = "null";
+
 					boost::split(palavras, linha, boost::is_any_of("[]|"));
 					for (int j = 1; j < palavras.size()-1; j++) {
 						if(palavras[j].empty() && j == 1){
 							//se a posição 1 é vazia logo a categoria raiz é sem nome
 							//cout << j <<" categoria: -sem nome- id: " << palavras[j+1] << " super categ: " << super_cat << endl;
 
+							insereCategoria(C, palavras[j+1], palavras[j], super_cat);
 							super_cat = palavras[j+1];
 							j++;
 						} else if(!palavras[j].empty()) {
@@ -216,12 +254,14 @@ void parse(string nome_arquivo, connection& C){
 							trocaAspas(nome_aux);
 
 							//cout << j << " categoria: " << nome_aux << " id: " << palavras[j+1] << " super categ: " << super_cat << endl;
-
+							insereCategoria(C, palavras[j+1], nome_aux, super_cat);
 							super_cat = palavras[j+1];
 							j++;
 						}
 					}
-
+					
+					//INSERE PRODUTO_CATEGORIA
+					insereProduto_Categoria(C, produto.getASIN(), super_cat);
 				}
 			}	
 
@@ -268,6 +308,9 @@ void parse(string nome_arquivo, connection& C){
 
 						}
 					}
+					comentario.setASIN(produto.getASIN());
+					//INSERINDO COMENTARIO
+					insereComentarios(C, comentario);
 					/*cout << "data: " << comentario.getDate() <<
 						" cutomer: " << comentario.getId_cliente() <<
 						" nota: " << comentario.getRating() <<
@@ -282,6 +325,9 @@ void parse(string nome_arquivo, connection& C){
 		aux++;
 		//if(aux==400) break;
 	}
+
+	//INSERE SIMILARES
+	
 }
 
 int main(int argc, const char *argv[]) {
