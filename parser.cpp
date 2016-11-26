@@ -18,8 +18,10 @@ void parse(const char *nome_arquivo){
 	vector<string> palavras;
 	int aux=0, i_aux;
 	int similar_count;
+	int categ_count;
 	string title_aux;
 	Product produto;
+	Categorie categoria;
 	amazon_meta.open(nome_arquivo); 
 	unordered_multimap<string,string> similares;
 	vector<Categorie> categ;
@@ -88,7 +90,33 @@ void parse(const char *nome_arquivo){
 			}
 
 			/******Pegando categorias******/
-			
+			//TODO ler categorias
+			//diferenciar categorias sem nome
+			//
+			if(palavras[i] == "categories:"){
+				categ_count = stoi(palavras[i+1]);
+				string super_cat;	
+				for (int i = 0; i < categ_count; i++) {
+					getline(amazon_meta, linha);
+					super_cat = "null";
+					boost::split(palavras, linha, boost::is_any_of("[]|"));
+					for (int j = 1; j < palavras.size()-1; j++) {
+						if(palavras[j].empty() && j == 1){
+							//se a posição 1 é vazia logo a categoria raiz é sem nome
+							cout << j <<" categoria: -sem nome- id: " << palavras[j+1] << " super categ: " << super_cat << endl;
+
+							super_cat = palavras[j+1];
+							j++;
+						} else if(!palavras[j].empty()) {
+							cout << j << " categoria: " << palavras[j] << " id: " << palavras[j+1] << " super categ: " << super_cat << endl;
+							
+							super_cat = palavras[j+1];
+							j++;
+						}
+					}
+
+				}
+			}		
 
 		}
 		palavras.clear();
