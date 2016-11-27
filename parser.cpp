@@ -109,9 +109,14 @@ void insereProduto(connection& C, Product produto) {
 void insereCategoria(connection& C, int cod, string nome, int super_cat) {
 	string sql;
 	work W(C);
+	string super_categoria;
+
+	if (super_cat == 0)
+		super_categoria = "null";
+	else super_categoria = to_string(super_cat);
 
 	sql = "INSERT INTO categoria (cod, nome, super_categoria) " \
-	"VALUES (" + to_string(cod) + ", '" + nome + "', " + to_string(super_cat) + ")" \
+	"VALUES (" + to_string(cod) + ", '" + nome + "', " + super_categoria + ")" \
 	"ON CONFLICT (cod) DO NOTHING;";
 
 	W.exec(sql);
@@ -157,6 +162,10 @@ void parse(string nome_arquivo, connection& C){
 	vector<Categorie> categ;
 
 	if (!amazon_meta.is_open()) exit(1);
+
+	for (int i = 0; i < 120010; i++)
+		getline(amazon_meta, linha);
+	
 	while (getline(amazon_meta,linha)){
 		//cout << linha << endl;
 		boost::split(palavras, linha, boost::is_any_of(" []|"));
@@ -252,14 +261,22 @@ void parse(string nome_arquivo, connection& C){
 								j++;
 							}
 
-							id_categ = stoi(palavras[j]);
+							try {
+								id_categ = stoi(palavras[j]);
+							}
+							catch (invalid_argument& e) {
+								while(palavras[j].empty()){
+									j++;
+								}
+								id_categ = stoi(palavras[j]);
+							}							
 
 							//cout << j <<" categoria: -sem nome- id: " << id_categ << " super categ: " << super_cat << endl;
 
 							
 							//cout << j <<" categoria: -sem nome- id: " << palavras[j+1] << " super categ: " << super_cat << endl;
 
-							insereCategoria(C, id_categ, palavras[j], super_cat);
+							insereCategoria(C, id_categ, "", super_cat);
 							super_cat = id_categ;
 							j++;
 						} else if(!palavras[j].empty()) {
@@ -271,8 +288,17 @@ void parse(string nome_arquivo, connection& C){
 								j++;
 							}
 
-							id_categ = stoi(palavras[j]);
-							cout << j << " categoria: " << nome_aux << " id: " << id_categ << " super categ: " << super_cat << endl;
+							try {
+								id_categ = stoi(palavras[j]);
+							}
+							catch (invalid_argument& e) {
+								j++;
+								while(palavras[j].empty()){
+									j++;
+								}
+								id_categ = stoi(palavras[j]);
+							}
+							//cout << j << " categoria: " << nome_aux << " id: " << id_categ << " super categ: " << super_cat << endl;
 							//cout << j << " categoria: " << nome_aux << " id: " << palavras[j+1] << " super categ: " << super_cat << endl;
 							insereCategoria(C, id_categ, nome_aux, super_cat);
 							super_cat = id_categ;
