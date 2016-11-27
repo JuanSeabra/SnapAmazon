@@ -1,6 +1,7 @@
 #include "categorie.h"
 #include "review.h"
 #include "product.h"
+#include <time.h>
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -28,6 +29,10 @@ void removeR(string &str) {
 		str.erase(str.size()-1);
 }
 
+void removeEspaco(string &str) {
+	if (str[str.size()-1] == ' ')
+		str.erase(str.size()-1);
+}
 
 void criacao_relacoes(connection& C) {
 	string sql;
@@ -146,10 +151,11 @@ void insereComentarios(work &W, Review coment) {
 	//W.commit();
 }
 
-void insereSimilares(work& W, string asin1, string asin2) {
+void insereSimilares(work &W, string asin1, string asin2) {
 	string sql;
+	removeR(asin2);
 
-	sql = "INSERT INTO similares (asin, asin_similar) " \
+	sql = "INSERT INTO similares(ASIN, ASIN_Similar) " \
 	"VALUES ('" + asin1 +"', '" + asin2 + "');";
 
 	W.exec(sql);
@@ -159,7 +165,7 @@ void parse(string nome_arquivo, connection& C){
 	ifstream amazon_meta;
 	string linha;
 	vector<string> palavras;
-	int aux=0, i_aux, contProdutos=0;
+	int aux=0, i_aux;
 	int similar_count;
 	int categ_count;
 	string title_aux;
@@ -172,9 +178,7 @@ void parse(string nome_arquivo, connection& C){
 
 	if (!amazon_meta.is_open()) exit(1);
 
-	/*for (int i = 0; i < 120010; i++)
-		getline(amazon_meta, linha);*/
-
+	cout << "Inserindo..." << endl;
 	while (getline(amazon_meta,linha)){
 		//cout << linha << endl;
 		boost::split(palavras, linha, boost::is_any_of(" []|"));
@@ -223,9 +227,7 @@ void parse(string nome_arquivo, connection& C){
 
 			if(produto.isValid()){
 				//cout << "INSERE PRODUTO NO BANCO" << endl;
-				//insereProduto(C, produto);
-				contProdutos++;
-				//cout << "Numero de produtos: " << contProdutos << endl;
+				insereProduto(C, produto);
 				produto.setValid();
 			}
 
@@ -236,8 +238,7 @@ void parse(string nome_arquivo, connection& C){
 				int j = 1;
 				while (similar_count) {
 					string asin_similar = palavras[i+1+j];
-					if (!asin_similar.empty()) {
-						
+					if (!asin_similar.empty()) {						
 						pair <string, string> par_ (produto.getASIN(), asin_similar);
 						similares.insert(par_);
 						similar_count--;
@@ -250,138 +251,138 @@ void parse(string nome_arquivo, connection& C){
 			//TODO ler categorias
 			//diferenciar categorias sem nome
 			//
-			// if(palavras[i] == "categories:"){
-			// 	categ_count = stoi(palavras[i+1]);
-			// 	int super_cat;
-			// 	int id_categ;
-			// 	//PARA CADA CATEGORIA
-			// 	for (int i = 0; i < categ_count; i++) {
-			// 		getline(amazon_meta, linha);
-			// 		super_cat = 0;
+			if(palavras[i] == "categories:"){
+				categ_count = stoi(palavras[i+1]);
+				int super_cat;
+				int id_categ;
+				//PARA CADA CATEGORIA
+				for (int i = 0; i < categ_count; i++) {
+					getline(amazon_meta, linha);
+					super_cat = 0;
 					
-			// 		boost::split(palavras, linha, boost::is_any_of("[]|"));
-			// 		work WCategoria(C);
-			// 		//OBTENDO SUBCATEGORIAS
-			// 		for (int j = 1; j < palavras.size()-1; j++) {
-			// 			if(palavras[j].empty() && j == 1){
-			// 				//se a posição 1 é vazia logo a categoria raiz é sem nome
-			// 				//string nome_aux = palavras[j];
-			// 				//trocaAspas(nome_aux);
+					boost::split(palavras, linha, boost::is_any_of("[]|"));
+					work WCategoria(C);
+					//OBTENDO SUBCATEGORIAS
+					for (int j = 1; j < palavras.size()-1; j++) {
+						if(palavras[j].empty() && j == 1){
+							//se a posição 1 é vazia logo a categoria raiz é sem nome
+							//string nome_aux = palavras[j];
+							//trocaAspas(nome_aux);
 
-			// 				j++;
-			// 				while(palavras[j].empty()){
-			// 					j++;
-			// 				}
+							j++;
+							while(palavras[j].empty()){
+								j++;
+							}
 
-			// 				try {
-			// 					id_categ = stoi(palavras[j]);
-			// 				}
-			// 				catch (invalid_argument& e) {
-			// 					while(palavras[j].empty()){
-			// 						j++;
-			// 					}
-			// 					id_categ = stoi(palavras[j]);
-			// 				}							
+							try {
+								id_categ = stoi(palavras[j]);
+							}
+							catch (invalid_argument& e) {
+								while(palavras[j].empty()){
+									j++;
+								}
+								id_categ = stoi(palavras[j]);
+							}							
 
-			// 				//cout << j <<" categoria: -sem nome- id: " << id_categ << " super categ: " << super_cat << endl;
+							//cout << j <<" categoria: -sem nome- id: " << id_categ << " super categ: " << super_cat << endl;
 
 							
-			// 				//cout << j <<" categoria: -sem nome- id: " << palavras[j+1] << " super categ: " << super_cat << endl;
+							//cout << j <<" categoria: -sem nome- id: " << palavras[j+1] << " super categ: " << super_cat << endl;
 
-			// 				insereCategoria(WCategoria, id_categ, "", super_cat);
-			// 				super_cat = id_categ;
-			// 				j++;
-			// 			} else if(!palavras[j].empty()) {
-			// 				string nome_aux = palavras[j];
-			// 				trocaAspas(nome_aux);
+							insereCategoria(WCategoria, id_categ, "", super_cat);
+							super_cat = id_categ;
+							j++;
+						} else if(!palavras[j].empty()) {
+							string nome_aux = palavras[j];
+							trocaAspas(nome_aux);
 
-			// 				j++;
-			// 				while(palavras[j].empty()){
-			// 					j++;
-			// 				}
+							j++;
+							while(palavras[j].empty()){
+								j++;
+							}
 
-			// 				try {
-			// 					id_categ = stoi(palavras[j]);
-			// 				}
-			// 				catch (invalid_argument& e) {
-			// 					j++;
-			// 					while(palavras[j].empty()){
-			// 						j++;
-			// 					}
-			// 					id_categ = stoi(palavras[j]);
-			// 				}
-			// 				//cout << j << " categoria: " << nome_aux << " id: " << id_categ << " super categ: " << super_cat << endl;
-			// 				//cout << j << " categoria: " << nome_aux << " id: " << palavras[j+1] << " super categ: " << super_cat << endl;
-			// 				insereCategoria(WCategoria, id_categ, nome_aux, super_cat);
-			// 				super_cat = id_categ;
-			// 				j++;
+							try {
+								id_categ = stoi(palavras[j]);
+							}
+							catch (invalid_argument& e) {
+								j++;
+								while(palavras[j].empty()){
+									j++;
+								}
+								id_categ = stoi(palavras[j]);
+							}
+							//cout << j << " categoria: " << nome_aux << " id: " << id_categ << " super categ: " << super_cat << endl;
+							//cout << j << " categoria: " << nome_aux << " id: " << palavras[j+1] << " super categ: " << super_cat << endl;
+							insereCategoria(WCategoria, id_categ, nome_aux, super_cat);
+							super_cat = id_categ;
+							j++;
 
-			// 			}
-			// 		}
-			// 		//FAZ COMMIT
-			// 		WCategoria.commit();
-			// 		//INSERE PRODUTO_CATEGORIA
-			// 		pair <string, int> par_ (produto.getASIN(), super_cat);
-			// 		produto_categoria.insert(par_);
-			// 		//insereProduto_Categoria(C, produto.getASIN(), super_cat);
-			// 	}
-			// }	
+						}
+					}
+					//FAZ COMMIT
+					WCategoria.commit();
+					//INSERE PRODUTO_CATEGORIA
+					pair <string, int> par_ (produto.getASIN(), super_cat);
+					produto_categoria.insert(par_);
+					//insereProduto_Categoria(C, produto.getASIN(), super_cat);
+				}
+			}	
 
-			// if (palavras[i] == "reviews:"){
-			// 	int downloaded;
-			// 	//celula 7 recebe o valor de downloaded no split
-			// 	downloaded = stoi(palavras[7]);
-			// 	//cout << "downloaded: " << downloaded << endl;
+			if (palavras[i] == "reviews:"){
+				int downloaded;
+				//celula 7 recebe o valor de downloaded no split
+				downloaded = stoi(palavras[7]);
+				//cout << "downloaded: " << downloaded << endl;
 
-			// 	work WComentario(C);
-			// 	for (int i = 0; i < downloaded; i++) {
-			// 		getline(amazon_meta, linha);
-			// 		boost::split(palavras, linha, boost::is_any_of(" "));
-			// 		comentario.setDate(palavras[4]);
-			// 		for (int j = 5; j < palavras.size(); j++) {
-			// 			if(!palavras[j].empty()){
-			// 				if(palavras[j] == "cutomer:"){
-			// 					j++;
-			// 					while(palavras[j].empty()){
-			// 						j++;
-			// 					}
-			// 					comentario.setId_cliente(palavras[j]);
-			// 				}
-			// 				if(palavras[j] == "rating:"){
-			// 					j++;
-			// 					while(palavras[j].empty()){
-			// 						j++;
-			// 					}
-			// 					comentario.setRating(stod(palavras[j]));
-			// 				}
-			// 				if(palavras[j] == "votes:"){
-			// 					j++;
-			// 					while(palavras[j].empty()){
-			// 						j++;
-			// 					}
-			// 					comentario.setVotes(stoi(palavras[j]));
-			// 				}
-			// 				if(palavras[j] == "helpful:"){
-			// 					j++;
-			// 					while(palavras[j].empty()){
-			// 						j++;
-			// 					}
-			// 					comentario.setHelpful(stoi(palavras[j]));
-			// 				}
+				work WComentario(C);
+				for (int i = 0; i < downloaded; i++) {
+					getline(amazon_meta, linha);
+					boost::split(palavras, linha, boost::is_any_of(" "));
+					comentario.setDate(palavras[4]);
+					for (int j = 5; j < palavras.size(); j++) {
+						if(!palavras[j].empty()){
+							if(palavras[j] == "cutomer:"){
+								j++;
+								while(palavras[j].empty()){
+									j++;
+								}
+								comentario.setId_cliente(palavras[j]);
+							}
+							if(palavras[j] == "rating:"){
+								j++;
+								while(palavras[j].empty()){
+									j++;
+								}
+								comentario.setRating(stod(palavras[j]));
+							}
+							if(palavras[j] == "votes:"){
+								j++;
+								while(palavras[j].empty()){
+									j++;
+								}
+								comentario.setVotes(stoi(palavras[j]));
+							}
+							if(palavras[j] == "helpful:"){
+								j++;
+								while(palavras[j].empty()){
+									j++;
+								}
+								comentario.setHelpful(stoi(palavras[j]));
+							}
 
-			// 			}
-			// 		}
-			// 		comentario.setASIN(produto.getASIN());
-			// 		//INSERINDO COMENTARIO
-			// 		insereComentarios(WComentario, comentario);
-			// 		/*cout << "data: " << comentario.getDate() <<
-			// 			" cutomer: " << comentario.getId_cliente() <<
-			// 			" nota: " << comentario.getRating() <<
-			// 			" votos: " << comentario.getVotes() <<
-			// 			" ajudou: " << comentario.getHelpful() << endl;*/
-			// 	}
-			// 	WComentario.commit();
-			// }
+						}
+					}
+					comentario.setASIN(produto.getASIN());
+					//INSERINDO COMENTARIO
+					insereComentarios(WComentario, comentario);
+					/*cout << "data: " << comentario.getDate() <<
+						" cutomer: " << comentario.getId_cliente() <<
+						" nota: " << comentario.getRating() <<
+						" votos: " << comentario.getVotes() <<
+						" ajudou: " << comentario.getHelpful() << endl;*/
+				}
+				WComentario.commit();
+			}
 
 		}
 		palavras.clear();
@@ -389,24 +390,26 @@ void parse(string nome_arquivo, connection& C){
 	}
 
 	//INSERE PRODUTO CATEGORIA
-	// work WProduto_Categoria(C);
-	// unordered_multimap<string,int>::iterator it;
-	// for (it = produto_categoria.begin(); it != produto_categoria.end(); it++) {
-	// 	insereProduto_Categoria(WProduto_Categoria, it->first, it->second);
-	// }
-	// WProduto_Categoria.commit();
+	work WProduto_Categoria(C);
+	unordered_multimap<string,int>::iterator it;
+	for (it = produto_categoria.begin(); it != produto_categoria.end(); it++) {
+		insereProduto_Categoria(WProduto_Categoria, it->first, it->second);
+	}
+	WProduto_Categoria.commit();
 
 	//INSERE SIMILARES
 	work WSimilares(C);
 	unordered_multimap<string,string>::iterator it2;
 	for (it2 = similares.begin(); it2 != similares.end(); it2++) {
-		cout << "Similares: " << it2->first << " " << it2->second << endl;
-		insereSimilares(WSimilares, it2->first, it2->second);
+		if (similares.count(it2->second) != 0) {
+			insereSimilares(WSimilares, it2->first, it2->second);
+		}		
 	}
 	WSimilares.commit();
 
-	//produto_categoria.clear();
+	produto_categoria.clear();
 	similares.clear();
+	cout << "FIM DA INSERCAO" << endl;
 }
 
 int main(int argc, const char *argv[]) {
