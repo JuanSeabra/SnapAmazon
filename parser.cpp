@@ -1,21 +1,8 @@
-#include "categorie.h"
-#include "review.h"
-#include "product.h"
-#include <time.h>
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <fstream>
-#include <vector>
-#include <unordered_map>
-#include <boost/algorithm/string.hpp>
-#include <pqxx/pqxx>
-
-using namespace std;
-using namespace pqxx;
 //using namespace boost;
 
-void trocaAspas(string &str){
+#include "parser.h"
+
+void Parser::trocaAspas(string &str){
 	for(int j = 0; j < str.size(); j++){
 		if(str[j] == '\''){
 			str.insert(j,"\'");
@@ -24,144 +11,17 @@ void trocaAspas(string &str){
 	}
 }
 
-void removeR(string &str) {
+void Parser::removeR(string &str) {
 	if (!str.empty() && str[str.size()-1] == '\r')
 		str.erase(str.size()-1);
 }
 
-void removeEspaco(string &str) {
+void Parser::removeEspaco(string &str) {
 	if (str[str.size()-1] == ' ')
 		str.erase(str.size()-1);
 }
 
-void criacao_relacoes(connection& C) {
-	string sql;
-	work W(C);
-
-	//Relacao produto
-	sql = "CREATE TABLE IF NOT EXISTS produto(" \
-		"ASIN 		VARCHAR(15)  NOT NULL," \
-		"titulo		TEXT NOT NULL," \
-		"grupo 		TEXT NOT NULL," \
-		"posicao_rank 	INT NOT NULL," \
-		"PRIMARY KEY (ASIN) );";
-	
-	W.exec(sql);	
-	cout << "Relacao criada com sucesso: Produto" << endl;
-
-	//Relacao Similar
-	sql = "CREATE TABLE IF NOT EXISTS similares(" \
-		"ASIN 			VARCHAR(15)  NOT NULL, " \
-		"ASIN_Similar	VARCHAR(15)  NOT NULL, " \
-		"PRIMARY KEY (ASIN, ASIN_Similar), " \
-		"FOREIGN KEY (ASIN) REFERENCES produto(ASIN), " \
-		"FOREIGN KEY (ASIN_Similar) REFERENCES produto(ASIN));";
-
-	W.exec(sql);	
-	cout << "Relacao criada com sucesso: Similares" << endl;
-
-	//Relacao Categoria
-	sql = "CREATE TABLE IF NOT EXISTS categoria(" \
-		"cod 		INT  NOT NULL," \
-		"nome		TEXT," \
-		"super_categoria INT," \
-		"PRIMARY KEY (cod)," \
-		"FOREIGN KEY (super_categoria) REFERENCES categoria(cod));";
-
-	W.exec(sql);
-	cout << "Relacao criada com sucesso: Categoria" << endl;
-	
-	//Relacao Produto_Categoria
-	sql = "CREATE TABLE IF NOT EXISTS produto_categoria(" \
-		"ASIN 	VARCHAR(15)  NOT NULL," \
-		"cod	INT  NOT NULL," \
-		"PRIMARY KEY (ASIN, cod)," \
-		"FOREIGN KEY (ASIN) REFERENCES produto(ASIN)," \
-		"FOREIGN KEY (cod) REFERENCES categoria(cod));";
-
-	W.exec(sql);
-	cout << "Relacao criada com sucesso: Produto_Categoria" << endl;
-
-	//Relacao Comentario
-	sql = "CREATE TABLE IF NOT EXISTS comentario(" \
-		"ID 		SERIAL  NOT NULL," \
-		"data		DATE NOT NULL," \
-		"classif	INT NOT NULL," \
-		"votos		INT NOT NULL," \
-		"util		INT NOT NULL," \
-		"produto	VARCHAR(15) NOT NULL," \
-		"cliente	VARCHAR(15) NOT NULL," \
-		"PRIMARY KEY (ID)," \
-		"FOREIGN KEY (produto) REFERENCES produto(ASIN));";
-	W.exec(sql);
-	cout << "Relacao criada com sucesso: Comentario" << endl;
-
-	W.commit();
-}
-
-void insereProduto(connection& C, Product produto) {
-	string sql;
-	work W(C);	
-	
-	sql = "INSERT INTO PRODUTO (ASIN, titulo, grupo, posicao_rank) " \
-	"VALUES ('"+ produto.getASIN() +"', '"+ produto.getTitle() +"', '"\
-	+ produto.getGroup() +"', " + to_string(produto.getSalesRank())+");";
-
-	W.exec(sql);
-	W.commit();
-}
-
-void insereCategoria(work& W, int cod, string nome, int super_cat) {
-	string sql;
-	//work W(C);
-	string super_categoria;
-
-	if (super_cat == 0)
-		super_categoria = "null";
-	else super_categoria = to_string(super_cat);
-
-	sql = "INSERT INTO categoria (cod, nome, super_categoria) " \
-	"VALUES (" + to_string(cod) + ", '" + nome + "', " + super_categoria + ")" \
-	"ON CONFLICT (cod) DO NOTHING;";
-
-	W.exec(sql);
-	//W.commit();
-}
-
-void insereProduto_Categoria(work& W, string asin, int cat) {
-	string sql;
-	//work W(C);
-
-	sql = "INSERT INTO produto_categoria (ASIN, cod) " \
-	"VALUES ('" + asin +"', " + to_string(cat) + ");";
-
-	W.exec(sql);
-	//W.commit();
-}
-
-void insereComentarios(work &W, Review coment) {
-	string sql;
-	//work W(C);
-
-	sql = "INSERT INTO comentario (data, classif, votos, util, produto, cliente) " \
-	"VALUES ('" + coment.getDate() + "', " + to_string(coment.getRating()) + ", " \
-	+to_string(coment.getVotes())+ ", " \
-	+ to_string(coment.getHelpful()) + ", '" + coment.getASIN() + "', '" + coment.getId_cliente() + "');";
-	W.exec(sql);
-	//W.commit();
-}
-
-void insereSimilares(work &W, string asin1, string asin2) {
-	string sql;
-	removeR(asin2);
-
-	sql = "INSERT INTO similares(ASIN, ASIN_Similar) " \
-	"VALUES ('" + asin1 +"', '" + asin2 + "');";
-
-	W.exec(sql);
-}
-
-void parse(string nome_arquivo, connection& C){
+void Parser::parse(string nome_arquivo, BancoDeDados banco, connection &C){
 	ifstream amazon_meta;
 	string linha;
 	vector<string> palavras;
@@ -227,7 +87,7 @@ void parse(string nome_arquivo, connection& C){
 
 			if(produto.isValid()){
 				//cout << "INSERE PRODUTO NO BANCO" << endl;
-				insereProduto(C, produto);
+				banco.insereProduto(C, produto);
 				produto.setValid();
 			}
 
@@ -289,7 +149,7 @@ void parse(string nome_arquivo, connection& C){
 							
 							//cout << j <<" categoria: -sem nome- id: " << palavras[j+1] << " super categ: " << super_cat << endl;
 
-							insereCategoria(WCategoria, id_categ, "", super_cat);
+							banco.insereCategoria(WCategoria, id_categ, "", super_cat);
 							super_cat = id_categ;
 							j++;
 						} else if(!palavras[j].empty()) {
@@ -313,7 +173,7 @@ void parse(string nome_arquivo, connection& C){
 							}
 							//cout << j << " categoria: " << nome_aux << " id: " << id_categ << " super categ: " << super_cat << endl;
 							//cout << j << " categoria: " << nome_aux << " id: " << palavras[j+1] << " super categ: " << super_cat << endl;
-							insereCategoria(WCategoria, id_categ, nome_aux, super_cat);
+							banco.insereCategoria(WCategoria, id_categ, nome_aux, super_cat);
 							super_cat = id_categ;
 							j++;
 
@@ -374,7 +234,7 @@ void parse(string nome_arquivo, connection& C){
 					}
 					comentario.setASIN(produto.getASIN());
 					//INSERINDO COMENTARIO
-					insereComentarios(WComentario, comentario);
+					banco.insereComentarios(WComentario, comentario);
 					/*cout << "data: " << comentario.getDate() <<
 						" cutomer: " << comentario.getId_cliente() <<
 						" nota: " << comentario.getRating() <<
@@ -393,7 +253,7 @@ void parse(string nome_arquivo, connection& C){
 	work WProduto_Categoria(C);
 	unordered_multimap<string,int>::iterator it;
 	for (it = produto_categoria.begin(); it != produto_categoria.end(); it++) {
-		insereProduto_Categoria(WProduto_Categoria, it->first, it->second);
+		banco.insereProduto_Categoria(WProduto_Categoria, it->first, it->second);
 	}
 	WProduto_Categoria.commit();
 
@@ -402,7 +262,9 @@ void parse(string nome_arquivo, connection& C){
 	unordered_multimap<string,string>::iterator it2;
 	for (it2 = similares.begin(); it2 != similares.end(); it2++) {
 		if (similares.count(it2->second) != 0) {
-			insereSimilares(WSimilares, it2->first, it2->second);
+			string asin_similar = it2->second;
+			removeR(asin_similar);
+			banco.insereSimilares(WSimilares, it2->first, asin_similar);
 		}		
 	}
 	WSimilares.commit();
@@ -412,45 +274,4 @@ void parse(string nome_arquivo, connection& C){
 	cout << "FIM DA INSERCAO" << endl;
 }
 
-int main(int argc, const char *argv[]) {
-	string sql, endereco, usuario, senha, nome_banco, nome_arquivo;
 
-	if(argc != 6) {
-		cout << "uso: ./parser <endereco conexao> <usuario> <senha> <banco> <arquivo>" << endl;
-		exit(1);
-	}
-	else {
-		endereco = (string) argv[1];
-		usuario = (string) argv[2];
-		senha = (string) argv[3];
-		nome_banco = (string) argv[4];
-		nome_arquivo = (string) argv[5];
-	}
-
-	try {
-		connection C("dbname=" + nome_banco + " user=" + usuario + " password="+senha+" \
-			hostaddr="+endereco+" port=5432");
-
-		if (C.is_open()) {
-			cout << "Banco de dados aberto: " << C.dbname() << endl;
-		}
-		else {
-			cout << "Não foi possivel abrir este banco: " << C.dbname() << endl;
-			return 1;
-		}	
-
-		//Criando statements SQL: criacao de relacoes
-		criacao_relacoes(C);	
-
-		//Fazendo o parser
-		parse(nome_arquivo, C);
-
-		//Terminando
-		C.disconnect();
-	}
-	catch (const exception &e) {
-		cerr << e.what() << endl;
-		return 1;
-	}
-	return 0;
-}
