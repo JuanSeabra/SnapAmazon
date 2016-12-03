@@ -14,20 +14,12 @@ class BancoDeDados
 {
 	public:
 		BancoDeDados(connection& C);
-		BancoDeDados(){};
 		void insereProduto(connection& C, Product produto);
 		void insereCategoria(work& W, int cod, string nome, int super_cat);
 		void insereProduto_Categoria(work& W, string asin, int cat);
 		void insereComentarios(work &W, Review coment);
 		void insereSimilares(work &W, string asin1, string asin2);
 		
-		void listarCincoMaisProdutos(connection& C);
-		void listarSimilaresMaioresVendas(connection& C);
-		void mostrarEvolucaoDasAvaliacoes(connection& C);
-		void listarDezLideresPorGrupo(connection& C);
-		void listarDezProdutosMaiorMedia(connection& C);
-		void listarCincoCategMaiorMedia(connection& C);
-		void listarDezClientesTop(connection& C);
 };
 
 #endif
