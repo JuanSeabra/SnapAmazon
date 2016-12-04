@@ -7,7 +7,6 @@ set timefmt "%Y-%m-%d"
 set xtic rotate
 set xlabel 'Data'
 set ylabel 'Média review'
-set xtics font "Verdana,14"
 set grid
 set title "Média de Review por Data"
 set encoding utf8
