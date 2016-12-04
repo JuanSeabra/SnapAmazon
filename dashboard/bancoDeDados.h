@@ -4,6 +4,8 @@
 #include <string>
 #include <iostream>
 #include <pqxx/pqxx>
+#include <fstream>
+#include <cstdlib>
 
 using namespace std;
 using namespace pqxx;

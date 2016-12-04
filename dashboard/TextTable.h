@@ -1,3 +1,5 @@
+#ifndef TEXTTABLE_H
+#define TEXTTABLE_H
 #include <iostream>
 #include <map>
 #include <iomanip>
@@ -143,3 +145,5 @@ std::ostream & operator<<( std::ostream & stream, TextTable const & table )
 
     return stream;
 }
+
+#endif
